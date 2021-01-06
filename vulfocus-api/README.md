@@ -123,3 +123,15 @@ http {
 }
 ```
 
+#### 数据库
+镜像存储在`image_info`表中，字段：
+- image_id
+- image_name
+- image_vul_name
+- image_port
+- image_desc
+- rank
+- is_ok
+- create_date
+- update_date
+

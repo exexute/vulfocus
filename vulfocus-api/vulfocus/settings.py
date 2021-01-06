@@ -224,3 +224,6 @@ DOCKER_COMPOSE = os.path.join(BASE_DIR, "docker-compose")
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
 
 STATIC_URL = '/static/'
+
+# kube config
+KUBE_CONFIG_FILE = './../kubeconfig.yaml'

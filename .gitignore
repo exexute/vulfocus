@@ -133,3 +133,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# k8s
+vulfocus-api/kubeconfig.yaml

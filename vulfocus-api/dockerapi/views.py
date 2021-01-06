@@ -43,11 +43,13 @@ class ImageInfoViewSet(viewsets.ModelViewSet):
             if query:
                 query = query.strip()
                 if flag and flag == "flag":
-                    image_info_list = ImageInfo.objects.filter(Q(image_name__contains=query) | Q(image_vul_name__contains=query)
-                                                       | Q(image_desc__contains=query)).order_by('-create_date')
+                    image_info_list = ImageInfo.objects.filter(
+                        Q(image_name__contains=query) | Q(image_vul_name__contains=query)
+                        | Q(image_desc__contains=query)).order_by('-create_date')
                 else:
-                    image_info_list = ImageInfo.objects.filter(Q(image_name__contains=query) | Q(image_vul_name__contains=query)
-                                                       | Q(image_desc__contains=query),is_ok=True).order_by('-create_date')
+                    image_info_list = ImageInfo.objects.filter(
+                        Q(image_name__contains=query) | Q(image_vul_name__contains=query)
+                        | Q(image_desc__contains=query), is_ok=True).order_by('-create_date')
             else:
                 if flag and flag == "flag":
                     image_info_list = ImageInfo.objects.filter().order_by('-create_date')
@@ -56,8 +58,9 @@ class ImageInfoViewSet(viewsets.ModelViewSet):
         else:
             if query:
                 query = query.strip()
-                image_info_list = ImageInfo.objects.filter(Q(image_name__contains=query) | Q(image_vul_name__contains=query)
-                                                       | Q(image_desc__contains=query), is_ok=True).order_by('-create_date')
+                image_info_list = ImageInfo.objects.filter(
+                    Q(image_name__contains=query) | Q(image_vul_name__contains=query)
+                    | Q(image_desc__contains=query), is_ok=True).order_by('-create_date')
             else:
                 image_info_list = ImageInfo.objects.filter(is_ok=True).order_by('-create_date')
         return image_info_list
@@ -113,6 +116,7 @@ class ImageInfoViewSet(viewsets.ModelViewSet):
         image_name = request.POST.get("image_name", "")
         image_vul_name = request.POST.get("image_vul_name", "")
         image_desc = request.POST.get("image_desc", "")
+        image_ports = request.POST.get("image_port", "")
         try:
             image_rank = request.POST.get("rank", default=2.5)
             image_rank = float(image_rank)
@@ -126,16 +130,17 @@ class ImageInfoViewSet(viewsets.ModelViewSet):
             image_info = ImageInfo.objects.filter(image_name=image_name).first()
         if not image_info:
             image_info = ImageInfo(image_name=image_name, image_vul_name=image_vul_name, image_desc=image_desc,
+                                   image_port=image_ports,
                                    rank=image_rank, is_ok=False, create_date=timezone.now(), update_date=timezone.now())
             if not image_file:
                 image_info.save()
-        task_id = tasks.create_image_task(image_info=image_info, user_info=user, request_ip=get_request_ip(request),
-                                          image_file=image_file)
-        if image_file:
-            task_info = TaskInfo.objects.filter(task_id=task_id).first()
-            task_msg = task_info.task_msg
-            return JsonResponse(json.loads(task_msg))
-        return JsonResponse(R.ok(task_id, msg="拉取镜像%s任务下发成功" % (image_name, )))
+        # task_id = tasks.create_image_task(image_info=image_info, user_info=user, request_ip=get_request_ip(request),
+        #                                   image_file=image_file)
+        # if image_file:
+        #     task_info = TaskInfo.objects.filter(task_id=task_id).first()
+        #     task_msg = task_info.task_msg
+        #     return JsonResponse(json.loads(task_msg))
+        return JsonResponse(R.ok(data=image_info.id, msg="镜像%s创建成功" % (image_name,)))
 
     @action(methods=["get"], detail=True, url_path="download")
     def download_image(self, request, pk=None):
@@ -152,7 +157,7 @@ class ImageInfoViewSet(viewsets.ModelViewSet):
         if not image_info:
             return JsonResponse(R.build(msg="镜像不存在"))
         task_id = tasks.create_image_task(image_info=image_info, user_info=user, request_ip=get_request_ip(request))
-        return JsonResponse(R.ok(task_id, msg="拉取镜像%s任务下发成功" % (image_info.image_name, )))
+        return JsonResponse(R.ok(task_id, msg="拉取镜像%s任务下发成功" % (image_info.image_name,)))
 
     @action(methods=["get"], detail=True, url_path="share")
     def share_image(self, request, pk=None):
@@ -252,7 +257,8 @@ class ImageInfoViewSet(viewsets.ModelViewSet):
         operation_args = ImageInfoSerializer(img_info).data
         request_ip = get_request_ip(request)
         sys_log = SysLog(user_id=user.id, operation_type="镜像", operation_name="删除",
-                         operation_value=operation_args["image_vul_name"], operation_args=json.dumps(operation_args), ip=request_ip)
+                         operation_value=operation_args["image_vul_name"], operation_args=json.dumps(operation_args),
+                         ip=request_ip)
         sys_log.save()
         image_id = img_info.image_id
         container_vul = ContainerVul.objects.filter(image_id=image_id)
@@ -291,7 +297,6 @@ class ImageInfoViewSet(viewsets.ModelViewSet):
 
 
 class ContainerVulViewSet(viewsets.ReadOnlyModelViewSet):
-
     serializer_class = ContainerVulSerializer
 
     def get_queryset(self):
@@ -394,7 +399,6 @@ class ContainerVulViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class SysLogSet(viewsets.ModelViewSet):
-
     serializer_class = SysLogSerializer
 
     def get_queryset(self):
@@ -510,4 +514,3 @@ def get_local_ip():
     finally:
         s.close()
     return local_ip
-

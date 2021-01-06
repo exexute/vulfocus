@@ -247,6 +247,10 @@ def run_container(container_id, user_id, tmp_task_id, countdown):
     msg = {}
     """
     创建启动任务
+    - pod名称（漏洞环境名称）
+    - 镜像
+    - 镜像名称
+    - 端口
     """
     args = {
         "image_name": image_name,
