@@ -5,6 +5,8 @@
 # @Site : 
 # @File :tasks.py
 from __future__ import absolute_import, unicode_literals
+
+import django
 from celery import shared_task, chain
 import uuid
 import time
@@ -15,6 +17,9 @@ import json
 import django.utils.timezone as timezone
 import random
 from django.db.models import Q
+
+from kubeapi.kubeapi import KubeCtl
+from vulfocus import settings
 from vulfocus.settings import client, api_docker_client, DOCKER_CONTAINER_TIME, VUL_IP, REDIS_POOL
 from dockerapi.common import DEFAULT_CONFIG
 from dockerapi.views import get_setting_config
@@ -27,6 +32,7 @@ from dockerapi.models import SysLog
 import datetime
 from dockerapi.serializers import ImageInfoSerializer, ContainerVulSerializer
 import redis
+
 r = redis.Redis(connection_pool=REDIS_POOL)
 
 
@@ -73,16 +79,17 @@ def create_image_task(image_info, user_info, request_ip, image_file=None):
                     image_info.image_name = image_name
                     image_info.image_port = image_port
                     # image_vul_name
-                    image_info.image_vul_name = image_name.replace("vulfocus/","") if not image_vul_name else image_vul_name
+                    image_info.image_vul_name = image_name.replace("vulfocus/",
+                                                                   "") if not image_vul_name else image_vul_name
                     # image_desc
-                    image_info.image_desc = image_name.replace("vulfocus/","") if not image_desc else image_desc
+                    image_info.image_desc = image_name.replace("vulfocus/", "") if not image_desc else image_desc
                     # rank
                     image_info.rank = 2.5 if image_rank > 5 or image_rank < 0.5 else image_rank
                     image_info.is_ok = True
                     image_info.save()
-                    task_info.task_name = "拉取镜像："+image_name
+                    task_info.task_name = "拉取镜像：" + image_name
                     task_info.task_status = 3
-                    task_msg = R.ok(data="%s 添加成功" % (image_name, ))
+                    task_msg = R.ok(data="%s 添加成功" % (image_name,))
             except Exception as e:
                 traceback.print_exc()
                 task_msg = R.err()
@@ -98,7 +105,8 @@ def create_image_task(image_info, user_info, request_ip, image_file=None):
         elif image_name:
             # 创建任务
             # create_image(task_id=task_id)
-            create_image.delay(task_id)
+            # create_docker_image.delay(task_id)
+            create_k8s_image.delay(task_id)
         else:
             R.build(msg="镜像文件或镜像名称不能为空")
         operation_args = ImageInfoSerializer(image_info).data
@@ -226,6 +234,7 @@ def delete_container_task(container_vul, user_info, request_ip):
     return task_id
 
 
+# todo 增加k8s版本启动方法
 @shared_task(name="tasks.run_container")
 def run_container(container_id, user_id, tmp_task_id, countdown):
     """
@@ -398,10 +407,11 @@ def run_container(container_id, user_id, tmp_task_id, countdown):
         task_info.update_date = timezone.now()
         task_info.save()
         task_id = str(task_info.task_id)
-    print("启动漏洞容器成功，任务ID：%s" % (task_id, ))
-    return create_stop_container_task(container_vul,user_info)
+    print("启动漏洞容器成功，任务ID：%s" % (task_id,))
+    return create_stop_container_task(container_vul, user_info)
 
 
+# todo 增加k8s版本停止方法
 @shared_task(name="tasks.stop_container")
 def stop_container(task_id):
     """
@@ -435,7 +445,7 @@ def stop_container(task_id):
     task_info.task_msg = json.dumps(msg)
     task_info.update_date = timezone.now()
     task_info.save()
-    print("停止漏洞容器成功，任务ID：%s" % (task_id, ))
+    print("停止漏洞容器成功，任务ID：%s" % (task_id,))
 
 
 @shared_task(name="tasks.delete_container")
@@ -477,11 +487,11 @@ def delete_container(task_id):
     task_info.task_msg = json.dumps(msg)
     task_info.update_date = timezone.now()
     task_info.save()
-    print("删除漏洞容器成功，任务ID：%s" % (task_id, ))
+    print("删除漏洞容器成功，任务ID：%s" % (task_id,))
 
 
-@shared_task(name="tasks.create_image")
-def create_image(task_id):
+@shared_task(name="tasks.create_docker_image")
+def create_docker_image(task_id):
     """
     创建镜像名称
     """
@@ -496,7 +506,8 @@ def create_image(task_id):
         image_desc = image_name
         image_rank = 2.5
         image_vul_name = image_desc
-        image_info = ImageInfo(image_name=image_name, image_desc=image_desc, rank=image_rank, image_vul_name=image_vul_name)
+        image_info = ImageInfo(image_name=image_name, image_desc=image_desc, rank=image_rank,
+                               image_vul_name=image_vul_name)
     image = None
     msg = {}
     try:
@@ -526,7 +537,8 @@ def create_image(task_id):
                         except:
                             line["progress"] = round(1 * 100, 2)
                     else:
-                        if (("Download" in status or "Pull" in status) and ("complete" in status)) or ("Verifying" in status) or \
+                        if (("Download" in status or "Pull" in status) and ("complete" in status)) or (
+                                "Verifying" in status) or \
                                 ("Layer" in status and "already" in status and "exists" in status):
                             line["progress"] = round(100.00, 2)
                         else:
@@ -541,11 +553,13 @@ def create_image(task_id):
                             continue
                         progress_count += 1
                     progress_info["progress_count"] = progress_count
-                    progress_info["progress"] = round((progress_count/progress_info["total"])*100, 2)
-                    r.set(str(task_id), json.dumps(progress_info,ensure_ascii=False))
+                    progress_info["progress"] = round((progress_count / progress_info["total"]) * 100, 2)
+                    r.set(str(task_id), json.dumps(progress_info, ensure_ascii=False))
                     print(json.dumps(progress_info, ensure_ascii=False))
                 last_info = line
-            if "status" in last_info and ("Downloaded newer image for" in last_info["status"] or "Image is up to date for" in last_info["status"]):
+            if "status" in last_info and (
+                    "Downloaded newer image for" in last_info["status"] or "Image is up to date for" in last_info[
+                "status"]):
                 image = client.images.get(image_name)
             else:
                 raise Exception
@@ -575,6 +589,69 @@ def create_image(task_id):
     task_info.save()
 
 
+@shared_task(name="tasks.create_k8s_image")
+def create_k8s_image(task_id):
+    """
+    创建镜像名称
+    """
+    task_info = TaskInfo.objects.filter(task_id=task_id, task_status=1).first()
+    if not task_info:
+        return
+    operation_args = task_info.operation_args
+    args = json.loads(operation_args)
+    image_name = args["image_name"].strip()
+    image_info = ImageInfo.objects.filter(image_name=image_name).first()
+    if not image_info:
+        return
+    msg = {}
+    try:
+        # 计算ports
+        container_port = image_info.image_port
+        port_list = container_port.split(",")
+        ports, random_list = [], []
+        for port in port_list:
+            random_port = ''
+            for i in range(20):
+                # random port
+                random_port = str(random.randint(8000, 65536))
+                if random_port in random_list or ContainerVul.objects.filter(container_port=random_port).first():
+                    continue
+                break
+            if not random_port:
+                msg = R.err(msg="端口无效")
+                break
+            random_list.append(random_port)
+            ports.append(f"{random_port}:{port}")
+
+        ctl = KubeCtl(settings.K8S_NAMESPACE)
+        ctl.create_pod(
+            pod_name=image_info.image_vul_name,
+            image=image_info.image_name,
+            image_name=image_info.image_vul_name,
+            ports=ports
+        )
+        status = ctl.read_pod_status(name=image_info.image_vul_name)
+        # 容器启动后，直接创建容器
+        ContainerVul(
+            image_id='',
+            user_id=task_info.user_id,
+            vul_host="",
+            container_status=status,
+            docker_container_id="",
+            vul_port=",".join(random_list),
+            container_port=container_port,
+            time_model_id="",
+            create_date=django.utils.timezone.now(),
+            container_flag=""
+        )
+    except Exception as e:
+        image_info.is_ok = False
+        image_info.save()
+    task_info.task_status = 3
+    task_info.task_msg = json.dumps(msg)
+    task_info.save()
+
+
 @shared_task(name="tasks.share_image")
 def share_image(task_id):
     """
@@ -592,14 +669,14 @@ def share_image(task_id):
     msg = R.ok(msg="分享成功")
     try:
         client.login(username, password)
-        new_image_name = image_name.split(":")[0]+":"+share_username
+        new_image_name = image_name.split(":")[0] + ":" + share_username
         if new_image_name.rfind("/") > -1:
             r_image_info = new_image_name[:new_image_name.rfind("/")]
             if r_image_info.rfind("/") > -1:
                 repo_tmp = r_image_info[:r_image_info.rfind("/")]
-                repo_name = "/".join([repo_tmp, username, new_image_name[new_image_name.rfind("/")+1:]])
+                repo_name = "/".join([repo_tmp, username, new_image_name[new_image_name.rfind("/") + 1:]])
             else:
-                repo_name = "/".join([username, new_image_name[new_image_name.rfind("/")+1:]])
+                repo_name = "/".join([username, new_image_name[new_image_name.rfind("/") + 1:]])
         else:
             repo_name = "/".join([username, new_image_name])
         new_image_name = repo_name
@@ -612,7 +689,8 @@ def share_image(task_id):
                 "progress": round(0.0, 2),
             }
             black_list = ["total", "progress_count", "progress"]
-            for line in api_docker_client.push(new_image_name, stream=True, decode=True, auth_config={"username": username, "password": password}):
+            for line in api_docker_client.push(new_image_name, stream=True, decode=True,
+                                               auth_config={"username": username, "password": password}):
                 if "status" in line and "progressDetail" in line and "id" in line:
                     id = line["id"]
                     status = line["status"]
@@ -627,7 +705,8 @@ def share_image(task_id):
                             line["progress"] = round(1 * 100, 2)
                     else:
                         if ("Pushed" in status) or ("Verifying" in status) or \
-                                ("Layer" in status and "already" in status and "exists" in status) or ("Mounted" in status and "from" in status):
+                                ("Layer" in status and "already" in status and "exists" in status) or (
+                                "Mounted" in status and "from" in status):
                             line["progress"] = round(100.00, 2)
                         else:
                             line["progress"] = round(0.00, 2)
@@ -641,15 +720,16 @@ def share_image(task_id):
                             continue
                         progress_count += 1
                     progress_info["progress_count"] = progress_count
-                    progress_info["progress"] = round((progress_count/progress_info["total"])*100, 2)
-                    r.set(str(task_id), json.dumps(progress_info,ensure_ascii=False))
+                    progress_info["progress"] = round((progress_count / progress_info["total"]) * 100, 2)
+                    r.set(str(task_id), json.dumps(progress_info, ensure_ascii=False))
                     print(json.dumps(progress_info, ensure_ascii=False))
                 last_info = line
             # print("last_info")
             # print("==========================")
             # print(json.dumps(last_info, ensure_ascii=False))
             if "error" in last_info and last_info["error"]:
-                task_info.task_msg = R.build(msg="原%s构建新镜像%s失败，错误信息：%s" % (image_name, new_image_name, str(last_info["error"]),))
+                task_info.task_msg = R.build(
+                    msg="原%s构建新镜像%s失败，错误信息：%s" % (image_name, new_image_name, str(last_info["error"]),))
                 task_info.task_status = 4
             elif "progressDetail" in last_info and "aux" in last_info and share_username in last_info["aux"]["Tag"]:
                 image_info = ImageInfo.objects.filter(image_name=image_name).first()
@@ -689,7 +769,7 @@ def create_share_image_task(image_info, user_info):
         "username": setting_config["username"],
         "pwd": setting_config["pwd"]
     }
-    task_info = TaskInfo(task_name="共享镜像："+image_name, user_id=user_id, task_status=1, task_msg=json.dumps({}),
+    task_info = TaskInfo(task_name="共享镜像：" + image_name, user_id=user_id, task_status=1, task_msg=json.dumps({}),
                          task_start_date=timezone.now(), operation_type=5, operation_args=json.dumps(args),
                          create_date=timezone.now(), update_date=timezone.now())
     task_info.save()
@@ -757,7 +837,8 @@ def create_run_container_task(container_vul, user_info):
         task_info = TaskInfo.objects.filter(operation_args=json.dumps(args), task_msg=json.dumps(task_msg),
                                             operation_type=2, task_name="运行容器：" + image_name, user_id=user_id).first()
     if not task_info:
-        task_info = TaskInfo.objects.filter(operation_args=json.dumps(args), task_msg="", task_status=1, user_id=user_id,
+        task_info = TaskInfo.objects.filter(operation_args=json.dumps(args), task_msg="", task_status=1,
+                                            user_id=user_id,
                                             operation_type=2, task_name="运行容器：" + image_name).first()
     if not task_info:
         task_info = TaskInfo(task_name="运行容器：" + image_name, user_id=user_id, task_status=1,
@@ -788,7 +869,7 @@ def create_base_container_task(container_vul, user_info, operation_type):
         "image_port": image_port,
         "container_id": str(container_vul.container_id)
     }
-    task_info = TaskInfo(task_name=task_name_base+"：" + image_name, user_id=user_id, task_status=1,
+    task_info = TaskInfo(task_name=task_name_base + "：" + image_name, user_id=user_id, task_status=1,
                          task_start_date=timezone.now(), operation_type=operation_type, task_msg=json.dumps({}),
                          operation_args=json.dumps(args), create_date=timezone.now(), update_date=timezone.now())
     task_info.save()
@@ -864,3 +945,6 @@ def get_request_ip(request):
         request_ip = request.META.get("REMOTE_ADDR")
     return request_ip
 
+
+if __name__ == '__main__':
+    create_docker_image('6af71aa59bea43e5b449efb0db9fe6cc')

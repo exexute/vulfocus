@@ -97,6 +97,10 @@ class ImageInfoViewSet(viewsets.ModelViewSet):
             image_desc = data["image_desc"]
             image_desc = image_desc.strip()
             image_info.image_desc = image_desc
+        if "image_port" in data:
+            image_port = data["image_port"]
+            image_port = image_port.strip()
+            image_info.image_port = image_port
         image_info.update_date = django.utils.timezone.now()
         image_info.save()
         return JsonResponse(R.ok())
@@ -116,7 +120,7 @@ class ImageInfoViewSet(viewsets.ModelViewSet):
         image_name = request.POST.get("image_name", "")
         image_vul_name = request.POST.get("image_vul_name", "")
         image_desc = request.POST.get("image_desc", "")
-        image_ports = request.POST.get("image_port", "")
+        image_port = request.POST.get("image_port", "")
         try:
             image_rank = request.POST.get("rank", default=2.5)
             image_rank = float(image_rank)
@@ -130,8 +134,8 @@ class ImageInfoViewSet(viewsets.ModelViewSet):
             image_info = ImageInfo.objects.filter(image_name=image_name).first()
         if not image_info:
             image_info = ImageInfo(image_name=image_name, image_vul_name=image_vul_name, image_desc=image_desc,
-                                   image_port=image_ports,
-                                   rank=image_rank, is_ok=False, create_date=timezone.now(), update_date=timezone.now())
+                                   image_port=image_port, rank=image_rank, is_ok=False, create_date=timezone.now(),
+                                   update_date=timezone.now())
             if not image_file:
                 image_info.save()
         # task_id = tasks.create_image_task(image_info=image_info, user_info=user, request_ip=get_request_ip(request),

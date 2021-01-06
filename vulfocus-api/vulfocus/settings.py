@@ -19,7 +19,6 @@ from django.core.management import utils
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/
 
@@ -67,10 +66,11 @@ REDIS_PORT = 6379
 REDIS_PASS = ""
 if REDIS_PASS:
     CELERY_BROKER_URL = "redis://:%s@%s:%s/0" % (REDIS_PASS, str(REDIS_HOST), str(REDIS_PORT))
-    REDIS_POOL = redis.ConnectionPool(host=REDIS_HOST, port=int(REDIS_PORT), password=REDIS_PASS, decode_responses=True, db=1)
+    REDIS_POOL = redis.ConnectionPool(host=REDIS_HOST, port=int(REDIS_PORT), password=REDIS_PASS, decode_responses=True,
+                                      db=1)
 else:
     CELERY_BROKER_URL = 'redis://%s:%s/0' % (REDIS_HOST, str(REDIS_PORT))
-    REDIS_POOL = redis.ConnectionPool(host=REDIS_HOST, port=int(REDIS_PORT), decode_responses=True,db=1)
+    REDIS_POOL = redis.ConnectionPool(host=REDIS_HOST, port=int(REDIS_PORT), decode_responses=True, db=1)
 
 #: Only add pickle to this list if your broker is secured
 #: from unwanted access (see userguide/security.html)
@@ -117,7 +117,6 @@ JWT_AUTH = {
 
 }
 
-
 ROOT_URLCONF = 'vulfocus.urls'
 
 TEMPLATES = [
@@ -139,7 +138,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'vulfocus.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/2.2/ref/settings/#databases
 
@@ -149,7 +147,6 @@ DATABASES = {
         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/2.2/ref/settings/#auth-password-validators
@@ -168,7 +165,6 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
-
 
 # Internationalization
 # https://docs.djangoproject.com/en/2.2/topics/i18n/
@@ -209,7 +205,6 @@ try:
 except Exception as e:
     pass
 
-
 # 靶场绑定 IP，提供用户访问靶场与 Docker 服务IP保持一致。
 VUL_IP = ""
 try:
@@ -227,3 +222,4 @@ STATIC_URL = '/static/'
 
 # kube config
 KUBE_CONFIG_FILE = './../kubeconfig.yaml'
+K8S_NAMESPACE = 'iast-vulenv'

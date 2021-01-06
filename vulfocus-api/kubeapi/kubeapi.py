@@ -33,7 +33,7 @@ class KubeCtl:
         pod.spec = spec
         return pod
 
-    def create_pod(self, pod_name, image, image_name, ports):
+    def create_pod(self, pod_name: str, image: str, image_name: str, ports: list):
         """
         example:
         ctl = KubeCtl(namespace=namespace)
