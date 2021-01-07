@@ -364,6 +364,25 @@ class ContainerVulViewSet(viewsets.ReadOnlyModelViewSet):
                                             request_ip=get_request_ip(request))
         return JsonResponse(R.ok(task_id))
 
+    @action(methods=["get"], detail=True, url_path='installIast')
+    def stop_container(self, request, pk=None):
+        """
+        停止容器运行
+        :param request:
+        :param pk:
+        :return:
+        """
+        task_ids = request.query_params.get('task_ids')
+        if task_ids:
+            task_ids = task_ids.split(',')
+            image_infos = ImageInfo.objects.filter(image_id__in=task_ids).values('image_vul_name')
+            data = list()
+            if image_infos:
+                for image in image_infos:
+                    data.append(image['image_vul_name'])
+            # todo 增加执行代码的功能 data = [pod_name, pod_name]
+        return JsonResponse(R.ok(data=data))
+
     @action(methods=["delete"], detail=True, url_path="delete")
     def delete_container(self, request, pk=None):
         """
@@ -380,6 +399,8 @@ class ContainerVulViewSet(viewsets.ReadOnlyModelViewSet):
         # container_vul = self.get_object()
         status, msg = tasks.delete_k8s_pod(container_vul.image_id.image_vul_name)
         if status:
+            container_vul.image_id.is_ok = False
+            container_vul.image_id.save()
             container_vul.delete()
         return JsonResponse(R.ok(status, msg))
 

@@ -5,7 +5,7 @@
         style="width: 30%"
         v-model="searchImageName"
         size="medium"
-        placeholder="镜像名称"
+        placeholder="请输入镜像名称进行搜索，eg: webforiast/nifi"
         :fetch-suggestions="querySearchImageAsync"
         @select="handleImageSelect"
       ></el-autocomplete>
@@ -67,11 +67,18 @@
           >
           <el-button
             size="mini"
-            type="primary"
+            type="warning"
             icon="el-icon-loading"
             v-if="row.container_status === 'Running'"
             @click="stopContainer(row)"
             >停止</el-button
+          >
+          <el-button
+            size="mini"
+            type="primary"
+            icon="el-icon-download"
+            @click="installIast(row)"
+            >安装IAST</el-button
           >
           <el-button
             size="mini"
@@ -102,6 +109,7 @@ import {
   containerStop,
   containerStart,
   containerDel,
+  containerInstallIast,
 } from "@/api/container";
 import { getTask } from "@/api/tasks";
 import CountDown from "vue2-countdown";
@@ -210,8 +218,6 @@ export default {
     },
     querySearchImageAsync(queryString, cb) {
       this.imageList = [];
-      this.searchImageName = null;
-      this.searchImageId = null;
       if (
         queryString !== "" &&
         queryString !== null &&
@@ -240,6 +246,11 @@ export default {
     handleContainer(page) {
       let id = this.searchImageId;
       this.search(id, page);
+    },
+    installIast(row) {
+      containerInstallIast(row.image_id).then((response) => {
+        console.log(response.data);
+      });
     },
     search(id, page) {
       containerList("list", page, id).then((response) => {
