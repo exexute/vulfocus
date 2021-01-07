@@ -259,6 +259,13 @@
         <el-form-item label="镜像">
           <el-input v-model="editVulInfo.image_name" disabled></el-input>
         </el-form-item>
+        <el-form-item label="容器端口">
+          <el-input
+            v-model="editVulInfo.image_port"
+            aria-placeholder="example: 80,443,8081"
+            size="medium"
+          ></el-input>
+        </el-form-item>
         <el-form-item label="Rank">
           <el-input-number
             v-model="editVulInfo.rank"
@@ -516,6 +523,7 @@ export default {
         image_id: "",
         image_vul_name: "",
         image_desc: "",
+        image_port: "",
       },
       imgType: "text",
       imgTypeText: "切换为文件",

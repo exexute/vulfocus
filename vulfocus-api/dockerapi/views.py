@@ -91,7 +91,7 @@ class ImageInfoViewSet(viewsets.ModelViewSet):
             image_info.rank = rank
         if "image_vul_name" in data:
             image_vul_name = data["image_vul_name"]
-            image_vul_name = image_vul_name.strip()
+            image_vul_name = re.sub(r'[^a-z\-0-9]', "-", image_vul_name.strip(), flags=re.I).lower()
             image_info.image_vul_name = image_vul_name
         if "image_desc" in data:
             image_desc = data["image_desc"]
