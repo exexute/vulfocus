@@ -100,7 +100,6 @@ class KubeCtl:
 
 if __name__ == '__main__':
     namespace = 'iast-test'
-    namespace = 'iast-test-1'
     ctl = KubeCtl(namespace=namespace)
     # ctl.create_pod(
     #     pod_name='iast-demo01',

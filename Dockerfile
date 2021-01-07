@@ -1,10 +1,9 @@
 FROM python:3
-LABEL maintainer="r4v3zn <woo0nise@gmail.com>" version="0.3.2.1" description="Vulfocus for Docker"
+LABEL maintainer="owef <owefsad@gmail.com>" version="0.3.2.1" description="Vulfocus for k8s"
 EXPOSE 80
 RUN mkdir /vulfocus-api/
 WORKDIR /vulfocus-api/
 ADD vulfocus-api/ /vulfocus-api/
-ENV VUL_IP=""
 ENV DOCKER_URL="unix://var/run/docker.sock"
 RUN mv /etc/apt/sources.list /etc/apt/sources.list.back && \
     cp /vulfocus-api/sources.list /etc/apt/sources.list && \

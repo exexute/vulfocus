@@ -116,7 +116,6 @@ class ImageInfoViewSet(viewsets.ModelViewSet):
         :param kwargs:
         :return:
         """
-        user = request.user
         image_name = request.POST.get("image_name", "")
         image_vul_name = request.POST.get("image_vul_name", "")
         image_desc = request.POST.get("image_desc", "")
@@ -138,12 +137,7 @@ class ImageInfoViewSet(viewsets.ModelViewSet):
                                    update_date=timezone.now())
             if not image_file:
                 image_info.save()
-        # task_id = tasks.create_image_task(image_info=image_info, user_info=user, request_ip=get_request_ip(request),
-        #                                   image_file=image_file)
-        # if image_file:
-        #     task_info = TaskInfo.objects.filter(task_id=task_id).first()
-        #     task_msg = task_info.task_msg
-        #     return JsonResponse(json.loads(task_msg))
+
         return JsonResponse(R.ok(data=image_info.id, msg="镜像%s创建成功" % (image_name,)))
 
     @action(methods=["get"], detail=True, url_path="download")
