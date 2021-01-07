@@ -44,7 +44,7 @@
                 >
               </el-col>
             </el-form-item>
-            <el-form-item label="映射端口">
+            <el-form-item label="容器端口">
               <el-input
                 v-model="vulInfo.vul_port"
                 aria-placeholder="example: 80,443,8081"
@@ -183,6 +183,13 @@
           </div>
         </el-row>
       </div>
+      <el-button
+        size="mini"
+        type="danger"
+        icon="el-icon-delete"
+        @click="terminalContainer(progress.imageId)"
+        >终止下载</el-button
+      >
     </el-dialog>
     <el-dialog :visible.sync="deleteShow" title="删除" width="80%">
       <el-table :data="deleteContainerList" border stripe style="width: 100%">
@@ -479,6 +486,7 @@ import {
   ImageLocalAdd,
   ImageShare,
   ImageDownload,
+  ImageTaskTerminal,
   ImageEdit,
 } from "@/api/image";
 import { containerDel } from "@/api/container";
@@ -525,6 +533,7 @@ export default {
       deleteContainerList: [],
       progress: {
         title: "",
+        imageId: "",
         layer: [],
         total: 0,
         count: 0,
@@ -618,6 +627,7 @@ export default {
     openProgress(row, flag) {
       this.progress = {
         title: "",
+        imageId: "",
         layer: [],
         total: 0,
         count: 0,
@@ -627,6 +637,7 @@ export default {
       this.progressShow = true;
       this.progressLoading = true;
       let taskId = row.status.task_id;
+      this.progress.imageId = row.image_id;
       if (flag === 1) {
         this.progress.title = "下载镜像：" + row.image_name;
       } else {
@@ -699,7 +710,13 @@ export default {
       }
     },
     uploadImg() {
-      let formData = new FormData();
+      let formData = {
+        rank: this.vulInfo.rank,
+        image_name: this.vulInfo.name,
+        image_vul_name: this.vulInfo.vul_name,
+        image_desc: this.vulInfo.desc,
+        image_port: this.vulInfo.vul_port,
+      };
       if (this.$refs.upload != null) {
         let uploadFiles = this.$refs.upload.uploadFiles;
         if (
@@ -709,11 +726,6 @@ export default {
           formData.set("file", uploadFiles[0].raw);
         }
       }
-      formData.set("rank", this.vulInfo.rank);
-      formData.set("image_name", this.vulInfo.name);
-      formData.set("image_vul_name", this.vulInfo.vul_name);
-      formData.set("image_desc", this.vulInfo.desc);
-      formData.set("image_port", this.vulInfo.vul_port);
       this.loading = true;
       ImageAdd(formData).then((response) => {
         this.loading = false;
@@ -905,7 +917,7 @@ export default {
                   }
                 } catch (e) {}
                 this.$notify({
-                  message: taskMsg["data"]["msg"],
+                  message: taskMsgData,
                   type: "success",
                 });
               } else {
@@ -1058,6 +1070,45 @@ export default {
             });
           }, 1);
         }, 1000);
+      });
+    },
+    terminalContainer(imageId) {
+      console.log(imageId);
+      ImageTaskTerminal(imageId).then((response) => {
+        let rsp = response.data;
+        let msg = rsp["msg"];
+        if (rsp.status === 200) {
+          if (
+            msg != null &&
+            (msg.indexOf("成功") > -1 || msg.indexOf("失败") > -1)
+          ) {
+            if (msg.indexOf("成功") > -1) {
+              this.$notify({
+                title: "成功",
+                message: msg,
+                type: "success",
+              });
+              this.initTableData();
+            } else {
+              this.$notify({
+                message: msg,
+                type: "error",
+              });
+            }
+          } else {
+            this.$notify({
+              message: msg,
+              type: "error",
+            });
+          }
+        } else {
+          this.$notify({
+            message: msg,
+            type: "error",
+          });
+        }
+        clearInterval(this.progress.progressInterval);
+        this.progressShow = false;
       });
     },
   },

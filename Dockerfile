@@ -19,4 +19,4 @@ RUN mv /etc/apt/sources.list /etc/apt/sources.list.back && \
     pip install -i https://pypi.tuna.tsinghua.edu.cn/simple some-package -r requirements.txt && \
     chmod u+x /vulfocus-api/run.sh
 ADD dist/ /var/www/html/
-CMD ["sh", "/vulfocus-api/run.sh"]
+CMD ["sh", "run.sh"]

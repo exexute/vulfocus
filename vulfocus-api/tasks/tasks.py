@@ -234,6 +234,11 @@ def delete_container_task(container_vul, user_info, request_ip):
     return task_id
 
 
+def delete_k8s_pod(image_vul_name: str):
+    ctl = KubeCtl(settings.K8S_NAMESPACE)
+    return ctl.del_pod(image_vul_name)
+
+
 # todo 增加k8s版本启动方法
 @shared_task(name="tasks.run_container")
 def run_container(container_id, user_id, tmp_task_id, countdown):
@@ -597,13 +602,13 @@ def create_k8s_image(task_id):
     task_info = TaskInfo.objects.filter(task_id=task_id, task_status=1).first()
     if not task_info:
         return
+    print(task_info.task_name)
     operation_args = task_info.operation_args
     args = json.loads(operation_args)
     image_name = args["image_name"].strip()
     image_info = ImageInfo.objects.filter(image_name=image_name).first()
     if not image_info:
         return
-    msg = {}
     try:
         # 计算ports
         container_port = image_info.image_port
@@ -623,32 +628,52 @@ def create_k8s_image(task_id):
             random_list.append(random_port)
             ports.append(f"{random_port}:{port}")
 
+        print(f'连接k8s集群-{settings.K8S_NAMESPACE}，创建pod：{image_info.image_vul_name}')
         ctl = KubeCtl(settings.K8S_NAMESPACE)
-        ctl.create_pod(
+        status, phase, host_ip, msg = ctl.create_pod(
             pod_name=image_info.image_vul_name,
             image=image_info.image_name,
             image_name=image_info.image_vul_name,
             ports=ports
         )
-        status = ctl.read_pod_status(name=image_info.image_vul_name)
-        # 容器启动后，直接创建容器
-        ContainerVul(
-            image_id='',
-            user_id=task_info.user_id,
-            vul_host="",
-            container_status=status,
-            docker_container_id="",
-            vul_port=",".join(random_list),
-            container_port=container_port,
-            time_model_id="",
-            create_date=django.utils.timezone.now(),
-            container_flag=""
-        )
+        print(f'poc创建{"成功" if status else "失败"}，日志：{msg}')
+        # todo 等待创建成功，修改状态
+        if status:
+            if phase in ['Not Found', 'No Premission', 'Exception']:
+                msg = f'容器创建成功，获取pod状态出错，原因：{status}'
+                task_info.task_status = 4
+                image_info.is_ok = False
+                image_info.save()
+            else:
+                # 容器启动后，直接创建容器
+                container_vul = ContainerVul(
+                    image_id=image_info,
+                    user_id=task_info.user_id,
+                    vul_host=host_ip,
+                    container_status=phase,
+                    docker_container_id="",
+                    vul_port=",".join(random_list),
+                    container_port=container_port,
+                    time_model_id="",
+                    create_date=django.utils.timezone.now(),
+                    container_flag=""
+                )
+                container_vul.save()
+                msg = f'容器创建成功，容器ID：{container_vul.container_id}'
+                task_info.task_status = 3
+                image_info.is_ok = True
+                image_info.save()
+        else:
+            msg = f'容器创建失败，原因：{msg}'
+            task_info.task_status = 4
+            image_info.is_ok = False
+            image_info.save()
     except Exception as e:
         image_info.is_ok = False
         image_info.save()
-    task_info.task_status = 3
-    task_info.task_msg = json.dumps(msg)
+        msg = f"容器创建失败，原因：{e}"
+        task_info.task_status = 4
+    task_info.task_msg = json.dumps(msg, ensure_ascii=False)
     task_info.save()
 
 
@@ -944,7 +969,3 @@ def get_request_ip(request):
     else:
         request_ip = request.META.get("REMOTE_ADDR")
     return request_ip
-
-
-if __name__ == '__main__':
-    create_docker_image('6af71aa59bea43e5b449efb0db9fe6cc')

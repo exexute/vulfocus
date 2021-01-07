@@ -60,6 +60,7 @@ INSTALLED_APPS = [
 
 # redis host
 REDIS_HOST = "127.0.0.1"
+# REDIS_HOST = "192.168.0.137"
 # redis port
 REDIS_PORT = 6379
 # redis pass
@@ -221,5 +222,5 @@ DOCKER_COMPOSE = os.path.join(BASE_DIR, "docker-compose")
 STATIC_URL = '/static/'
 
 # kube config
-KUBE_CONFIG_FILE = './../kubeconfig.yaml'
-K8S_NAMESPACE = 'iast-vulenv'
+KUBE_CONFIG_FILE = os.path.join(BASE_DIR, 'kubeconfig.yaml')
+K8S_NAMESPACE = 'iast-test'

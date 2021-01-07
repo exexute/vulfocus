@@ -9,11 +9,11 @@ import json
 from vulfocus.settings import REDIS_POOL
 from dockerapi.common import get_setting_config
 import redis
+
 r = redis.Redis(connection_pool=REDIS_POOL)
 
 
 class ImageInfoSerializer(serializers.ModelSerializer):
-
     status = serializers.SerializerMethodField('statusck')
 
     def statusck(self, obj):
@@ -47,7 +47,8 @@ class ImageInfoSerializer(serializers.ModelSerializer):
                 status["port"] = data.vul_port
                 operation_args = {"image_name": obj.image_name, "user_id": id, "image_port": obj.image_port}
                 task_info = TaskInfo.objects.filter(user_id=id, task_status=3, operation_type=2,
-                                                    operation_args=json.dumps(operation_args)).order_by("-create_date").first()
+                                                    operation_args=json.dumps(operation_args)).order_by(
+                    "-create_date").first()
                 if task_info:
                     try:
                         task_msg = json.loads(task_info.task_msg)
@@ -63,7 +64,7 @@ class ImageInfoSerializer(serializers.ModelSerializer):
         operation_args = {
             "image_name": obj.image_name
         }
-        task_info = TaskInfo.objects.filter(task_status=1, operation_type=1, operation_args=json.dumps(operation_args))\
+        task_info = TaskInfo.objects.filter(task_status=1, operation_type=1, operation_args=json.dumps(operation_args)) \
             .order_by("-create_date").first()
         if task_info:
             status["task_id"] = str(task_info.task_id)
@@ -82,7 +83,7 @@ class ImageInfoSerializer(serializers.ModelSerializer):
             "username": setting_config["username"],
             "pwd": setting_config["pwd"]
         }
-        task_info = TaskInfo.objects.filter(task_status=1, operation_type=5, operation_args=json.dumps(operation_args))\
+        task_info = TaskInfo.objects.filter(task_status=1, operation_type=5, operation_args=json.dumps(operation_args)) \
             .order_by("-create_date").first()
         if task_info:
             status["task_id"] = str(task_info.task_id)
@@ -108,18 +109,21 @@ class ContainerVulSerializer(serializers.ModelSerializer):
     user_name = serializers.SerializerMethodField('get_user_name')
     vul_name = serializers.SerializerMethodField('get_vul_name')
     vul_desc = serializers.SerializerMethodField('get_vul_desc')
-
+    vul_host = serializers.SerializerMethodField('get_vul_host')
 
     class Meta:
         model = ContainerVul
         fields = ['name', 'container_id', 'container_status', 'vul_host', 'create_date', 'is_check', 'is_check_date',
                   'rank', 'user_name', 'vul_name', 'vul_desc', "image_id"]
 
-    def get_vul_name(self,obj):
+    def get_vul_name(self, obj):
         return obj.image_id.image_vul_name
 
-    def get_vul_desc(self,obj):
+    def get_vul_desc(self, obj):
         return obj.image_id.image_desc
+
+    def get_vul_host(self, obj):
+        return ', '.join([obj.vul_host + ':' + port for port in obj.vul_port.split(',')])
 
     def ranktocon(self, obj):
         if obj:
@@ -146,12 +150,12 @@ class ContainerVulSerializer(serializers.ModelSerializer):
 
 
 class SysLogSerializer(serializers.ModelSerializer):
-
     user_name = serializers.SerializerMethodField('get_user_name')
 
     class Meta:
         model = SysLog
-        fields = ['user_name', 'operation_type', 'operation_name', 'operation_value', 'operation_args', 'ip', 'create_date']
+        fields = ['user_name', 'operation_type', 'operation_name', 'operation_value', 'operation_args', 'ip',
+                  'create_date']
 
     def get_user_name(self, obj):
         user_id = obj.user_id

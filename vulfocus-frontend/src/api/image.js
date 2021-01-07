@@ -9,9 +9,6 @@ export function ImageAdd(data) {
   return request({
     url: '/images/',
     method: 'post',
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    },
     data
   })
 }
@@ -22,9 +19,9 @@ export function ImageAdd(data) {
  * @param data
  * @constructor
  */
-export function ImageEdit(id,data) {
+export function ImageEdit(id, data) {
   return request({
-    url: "/images/"+id+"/edit/",
+    url: "/images/" + id + "/edit/",
     method: 'post',
     data
   })
@@ -37,7 +34,7 @@ export function ImageEdit(id,data) {
  */
 export function ImageDelete(id) {
   return request({
-    url: '/images/'+id+'/delete/'
+    url: '/images/' + id + '/delete/'
   })
 }
 
@@ -65,15 +62,28 @@ export function ImageLocalAdd(data) {
 }
 
 /**
+ * 停止下载镜像
+ * @param id
+ * @constructor
+ */
+export function ImageTaskTerminal(id) {
+  return request({
+    url: '/images/' + id + '/stop/',
+    method: 'post',
+  })
+}
+
+/**
  * 下载镜像
  * @param id
  * @constructor
  */
 export function ImageDownload(id) {
   return request({
-    url: '/images/'+id+'/download/'
+    url: '/images/' + id + '/download/'
   })
 }
+
 
 /**
  * 分享镜像
@@ -82,6 +92,6 @@ export function ImageDownload(id) {
  */
 export function ImageShare(id) {
   return request({
-    url: '/images/'+id+'/share/'
+    url: '/images/' + id + '/share/'
   })
 }

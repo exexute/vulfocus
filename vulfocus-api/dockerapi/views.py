@@ -116,12 +116,12 @@ class ImageInfoViewSet(viewsets.ModelViewSet):
         :param kwargs:
         :return:
         """
-        image_name = request.POST.get("image_name", "")
-        image_vul_name = request.POST.get("image_vul_name", "")
-        image_desc = request.POST.get("image_desc", "")
-        image_port = request.POST.get("image_port", "")
+        image_name = request.data.get("image_name", "")
+        image_vul_name = request.data.get("image_vul_name", "")
+        image_desc = request.data.get("image_desc", "")
+        image_port = request.data.get("image_port", "")
         try:
-            image_rank = request.POST.get("rank", default=2.5)
+            image_rank = request.data.get("rank", default=2.5)
             image_rank = float(image_rank)
         except:
             image_rank = 2.5
@@ -132,13 +132,14 @@ class ImageInfoViewSet(viewsets.ModelViewSet):
                 image_name += ":latest"
             image_info = ImageInfo.objects.filter(image_name=image_name).first()
         if not image_info:
+            image_vul_name = re.sub(r'[^a-z\-0-9]', "-", image_vul_name, flags=re.I).lower()
             image_info = ImageInfo(image_name=image_name, image_vul_name=image_vul_name, image_desc=image_desc,
                                    image_port=image_port, rank=image_rank, is_ok=False, create_date=timezone.now(),
                                    update_date=timezone.now())
             if not image_file:
                 image_info.save()
 
-        return JsonResponse(R.ok(data=image_info.id, msg="镜像%s创建成功" % (image_name,)))
+        return JsonResponse(R.ok(data=image_info.image_id, msg="镜像%s创建成功" % (image_name,)))
 
     @action(methods=["get"], detail=True, url_path="download")
     def download_image(self, request, pk=None):
@@ -293,6 +294,30 @@ class ImageInfoViewSet(viewsets.ModelViewSet):
         task_id = tasks.create_container_task(container_vul, user, get_request_ip(request))
         return JsonResponse(R.ok(task_id))
 
+    @action(methods=["post"], detail=True, url_path="stop")
+    def stop_image(self, request, pk=None):
+        image_info = ImageInfo.objects.filter(image_id=pk).first()
+        operation_args = {
+            "image_name": image_info.image_name
+        }
+
+        task_info = TaskInfo.objects.filter(task_status=1, operation_type=1, operation_args=json.dumps(operation_args)) \
+            .order_by("-create_date").first()
+        if task_info:
+            msg = f"任务{pk}停止成功"
+            task_info.delete()
+        else:
+            msg = f"任务{pk}不存在成功"
+        return JsonResponse(R.ok(pk, msg=msg))
+
+    @action(methods=["get"], detail=True, url_path="nomarlize")
+    def nomarlize_image(self, request, pk=None):
+        image_infos = ImageInfo.objects.all()
+        for image in image_infos:
+            image.image_vul_name = re.sub(r'[^a-z\-0-9]', "-", image.image_desc, flags=re.I).lower()
+            image.save()
+        return JsonResponse(R.ok(data='success'))
+
 
 class ContainerVulViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = ContainerVulSerializer
@@ -349,15 +374,14 @@ class ContainerVulViewSet(viewsets.ReadOnlyModelViewSet):
         """
         if not pk:
             return JsonResponse(R.build(msg="id不能为空"))
-        container_vul = ContainerVul.objects.filter(Q(docker_container_id__isnull=False), ~Q(docker_container_id=''),
-                                                    container_id=pk).first()
+        container_vul = ContainerVul.objects.filter(container_id=pk, user_id=request.user.id).first()
         if not container_vul:
             return JsonResponse(R.build(msg="环境不存在"))
-        user_info = request.user
         # container_vul = self.get_object()
-        task_id = tasks.delete_container_task(container_vul=container_vul, user_info=user_info,
-                                              request_ip=get_request_ip(request))
-        return JsonResponse(R.ok(task_id))
+        status, msg = tasks.delete_k8s_pod(container_vul.image_id.image_vul_name)
+        if status:
+            container_vul.delete()
+        return JsonResponse(R.ok(status, msg))
 
     @action(methods=["post", "get"], detail=True, url_path="flag")
     def check_flag(self, request, pk=None):
