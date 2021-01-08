@@ -1,6 +1,6 @@
-<h1 align="center"> Welcome to Vulfocus 🚀 </h1>
+<h1 align="center"> Welcome to Vulfocus-k8s 🚀 </h1>
 
-Vulfocus 是一个漏洞集成平台，将漏洞环境 docker 镜像，放入即可使用，开箱即用。
+Vulfocus-k8s 是一个漏洞集成平台，源自vulfocu，本版本将使用k8s管理漏洞环境，将漏洞环境(docker 镜像)，放入即可使用，开箱即用。
 
 <p>
   <img src="https://img.shields.io/github/stars/fofapro/vulfocus.svg?style=flat-square" />
