@@ -5,9 +5,10 @@
 # @Site    :
 # @File    : common.py
 # @Software: PyCharm
+import os
+
 from vulfocus.settings import client
 from .models import SysConfig
-
 
 HTTP_OK = 200
 HTTP_OK_RUNNING = 1001
@@ -18,7 +19,8 @@ DEFAULT_CONFIG = {
     "share_username": "",
     "username": "vulshare",
     "pwd": "2a295233-801b-4efb-9f78-916330b984f6",
-    "time": 30 * 60
+    "time": 30 * 60,
+    "agent_install_cmd": os.getenv('agent_install_cmd', None)
 }
 
 

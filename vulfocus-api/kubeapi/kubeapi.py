@@ -5,6 +5,7 @@
 # software: PyCharm
 # project: vulfocus
 import re
+import shlex
 import time
 
 from kubernetes import client, config
@@ -136,9 +137,10 @@ class KubeCtl:
 
     def exec(self, name, cmds):
         """
-
-        :param name:
-        :return:
+        在k8s pod中执行系统命令
+        :param name: pod名称
+        :param cmds: 命令参数
+        :return: 命令运行结果
         """
         try:
             resp = stream(
@@ -152,37 +154,3 @@ class KubeCtl:
             return resp
         except Exception as e:
             return None
-
-
-if __name__ == '__main__':
-    namespace = 'iast-test'
-    ctl = KubeCtl(namespace=namespace)
-    # ctl.create_pod(
-    #     pod_name='iast-demo01',
-    #     image='owef/iast-demo01:latest',
-    #     image_name='iast-demo01',
-    #     ports=['8080:8080']
-    # )
-
-    # ctl.create_pod(
-    #     pod_name='shiro-cve-2016-4437',
-    #     image='vulhub/shiro:1.2.4',
-    #     image_name='shiro/CVE-2016-4437',
-    #     ports=['59514:8080']
-    # )
-    pods = ctl.list_pods()
-    if pods:
-        for pod in pods:
-            print(f'name {pod["name"]}')
-            # resp = ctl.exec(
-            #     name=pod['name'],
-            #     cmds=['curl', f'http://{pod["name"]}.bbc3.showmeshell.com']
-            # )
-            # print(resp)
-            # ctl.del_pod(name=pod['name'])
-            log = ctl.read_pod_log(name=pod['name'])
-            print(log)
-            status = ctl.read_pod_status(name=pod['name'])
-            print(status)
-    else:
-        print('不存在运行中的pod')

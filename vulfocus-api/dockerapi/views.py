@@ -372,16 +372,28 @@ class ContainerVulViewSet(viewsets.ReadOnlyModelViewSet):
         :param pk:
         :return:
         """
-        task_ids = request.query_params.get('task_ids')
-        if task_ids:
-            task_ids = task_ids.split(',')
-            image_infos = ImageInfo.objects.filter(image_id__in=task_ids).values('image_vul_name')
+        config_key = "agent_install_cmd"
+        image_ids = request.query_params.get('task_ids', '').split(',')
+        if image_ids:
+            image_infos = ImageInfo.objects.filter(image_id__in=image_ids).values('image_vul_name')
+            if not image_infos:
+                return JsonResponse(R.err(data=None, msg='待安装的容器不存在'))
+
+            # 检查是否存在config
+            agent_install_cmd_config = SysConfig.objects.filter(config_key=config_key).first()
+            if not agent_install_cmd_config:
+                return JsonResponse(R.err(data=None, msg='安装命令不存在'))
+
             data = list()
-            if image_infos:
-                for image in image_infos:
-                    data.append(image['image_vul_name'])
-            # todo 增加执行代码的功能 data = [pod_name, pod_name]
-        return JsonResponse(R.ok(data=data))
+            agent_install_cmd = agent_install_cmd_config.config_value
+            for image in image_infos:
+                data.append(image['image_vul_name'])
+            tasks.create_exec_container_task(data, agent_install_cmd)
+            msg = 'agent安装任务已下发'
+        else:
+            data = list()
+            msg = '镜像ID为空，请检查输入'
+        return JsonResponse(R.ok(data=data, msg=msg))
 
     @action(methods=["delete"], detail=True, url_path="delete")
     def delete_container(self, request, pk=None):
@@ -481,6 +493,7 @@ def update_setting(request):
     pwd = request.POST.get("pwd", DEFAULT_CONFIG["pwd"])
     time = request.POST.get("time", DEFAULT_CONFIG["time"])
     share_username = request.POST.get("share_username", DEFAULT_CONFIG["share_username"])
+    agent_install_cmd = request.POST.get("agent_install_cmd", DEFAULT_CONFIG["agent_install_cmd"])
     msg_list = []
     build_msg = []
     try:
@@ -523,6 +536,16 @@ def update_setting(request):
             pwd_config.config_value = pwd
             pwd_config.save()
             msg_list.append("Dockerhub Token 修改成功")
+
+    agent_install_cmd_config = SysConfig.objects.filter(config_key="agent_install_cmd").first()
+    if not agent_install_cmd_config:
+        agent_install_cmd_config = SysConfig(config_key="agent_install_cmd", config_value=agent_install_cmd)
+        agent_install_cmd_config.save()
+    else:
+        if agent_install_cmd_config.config_value != agent_install_cmd:
+            agent_install_cmd_config.config_value = agent_install_cmd
+            agent_install_cmd_config.save()
+            msg_list.append("agent安装命令 修改成功")
 
     time_config = SysConfig.objects.filter(config_key="time").first()
     if not time_config:

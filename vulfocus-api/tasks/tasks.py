@@ -6,6 +6,8 @@
 # @File :tasks.py
 from __future__ import absolute_import, unicode_literals
 
+import shlex
+
 import django
 from celery import shared_task, chain
 import uuid
@@ -969,3 +971,28 @@ def get_request_ip(request):
     else:
         request_ip = request.META.get("REMOTE_ADDR")
     return request_ip
+
+
+def create_exec_container_task(pod_list: list, cmds: str, user_id=None):
+    # task_info = TaskInfo(task_name="运行命令：" + cmds, user_id=user_id, task_status=1,
+    #                      operation_type=2, operation_args=json.dumps(pod_list), task_msg="", create_date=timezone.now(),
+    #                      update_date=timezone.now())
+    # task_info.save()
+    install_iast_to_k8s_pod.delay(pod_list, cmds)
+
+
+@shared_task(name="tasks.install_iast_to_k8s_pod")
+def install_iast_to_k8s_pod(pod_list: list, cmd: str):
+    print(f'[ + ] 执行容器命令执行的任务，命令：{cmd}，容器列表：{",".join(pod_list)}')
+    # fixme 使用切命令的方法
+    _cmds = cmd.split("&&")
+    cmds = list()
+    for _cmd in _cmds:
+        s = shlex.shlex(_cmd, posix=True)
+        s.whitespace_split = True
+        cmds.append(list(s))
+    ctl = KubeCtl(settings.K8S_NAMESPACE)
+    for pod in pod_list:
+        for _cmd in cmds:
+            ctl.exec(name=pod, cmds=_cmd)
+    print(f'[ - ] 执行容器命令执行的任务，命令：{cmds}，容器列表：{",".join(pod_list)}')
