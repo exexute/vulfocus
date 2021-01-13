@@ -136,3 +136,4 @@ dmypy.json
 
 # k8s
 vulfocus-api/kubeconfig.yaml
+autobuild/app.jar

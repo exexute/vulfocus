@@ -95,3 +95,12 @@ export function ImageShare(id) {
     url: '/images/' + id + '/share/'
   })
 }
+
+// ImageInstallIast
+export function ImageInstallIast(param) {
+  return request({
+    url: '/iast/autoBuild',
+    method: 'GET',
+    param: param
+  })
+}

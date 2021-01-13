@@ -12,11 +12,13 @@ RUN mv /etc/apt/sources.list /etc/apt/sources.list.back && \
     apt install redis-server -y && \
     apt install nginx -y && \
     rm -rf /var/www/html/* && \
-    cp /vulfocus-api/nginx.conf /etc/nginx/nginx.conf && \
+    apt install -y openjdk-8-jre-headless
+RUN cp /vulfocus-api/nginx.conf /etc/nginx/nginx.conf && \
     cp /vulfocus-api/default /etc/nginx/sites-available/default && \
     cp /vulfocus-api/default /etc/nginx/sites-enabled/default && \
     python3 -m pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple && \
     pip install -i https://pypi.tuna.tsinghua.edu.cn/simple some-package -r requirements.txt && \
     chmod u+x /vulfocus-api/run.sh
-ADD dist/ /var/www/html/
+ADD autobuild/app.jar /vulfocus-api/
+ADD vulfocus-frontend/dist/ /var/www/html/
 CMD ["sh", "run.sh"]

@@ -350,8 +350,17 @@
         label="描述"
       >
       </el-table-column>
-      <el-table-column fixed="right" label="操作" width="260">
+      <el-table-column fixed="right" label="操作" width="360">
         <template slot-scope="{ row }">
+          <el-button
+            style="display: inline-block; float: left; margin-left: 5px"
+            size="mini"
+            type="primary"
+            plain
+            icon="el-icon-install"
+            @click="handleInstall(row)"
+            >安装洞态</el-button
+          >
           <el-tag
             style="
               display: inline-block;
@@ -383,7 +392,8 @@
             style="display: inline-block; float: left; margin-left: 5px"
             v-else-if="row.is_ok === false && row.status.task_id === ''"
             size="mini"
-            type="primary"
+            type="info"
+            plain
             icon="el-icon-download"
             @click="downloadImg(row)"
             >下载</el-button
@@ -397,6 +407,7 @@
             size="mini"
             icon="el-icon-edit"
             type="primary"
+            plain
             @click="openEdit(row)"
             >修改</el-button
           >
@@ -408,6 +419,7 @@
             "
             size="mini"
             type="danger"
+            plain
             icon="el-icon-delete"
             @click="handleDelete(row)"
             >删除</el-button
@@ -495,6 +507,7 @@ import {
   ImageDownload,
   ImageTaskTerminal,
   ImageEdit,
+  ImageInstallIast,
 } from "@/api/image";
 import { containerDel } from "@/api/container";
 import { getTask, batchTask, progressTask } from "@/api/tasks";
@@ -862,6 +875,20 @@ export default {
           });
         })
         .catch(() => {});
+    },
+    handleInstall(row) {
+      let installParam = {
+        imageName: row.image_name,
+        ports: row.image_port,
+      };
+      console.log(installParam);
+      ImageInstallIast(installParam).then((response) => {
+        this.$message({
+          title: response.data.result,
+          message: response.data.result,
+          type: "success",
+        });
+      });
     },
     handleQuery(val) {
       this.curentPage = val;

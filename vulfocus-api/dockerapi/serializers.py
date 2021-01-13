@@ -123,7 +123,7 @@ class ContainerVulSerializer(serializers.ModelSerializer):
         return obj.image_id.image_desc
 
     def get_vul_host(self, obj):
-        return ', '.join([obj.vul_host + ':' + port for port in obj.vul_port.split(',')])
+        return ', '.join([obj.vul_host + ':' + port for port in obj.container_port.split(',')])
 
     def ranktocon(self, obj):
         if obj:
