@@ -877,12 +877,7 @@ export default {
         .catch(() => {});
     },
     handleInstall(row) {
-      let installParam = {
-        imageName: row.image_name,
-        ports: row.image_port,
-      };
-      console.log(installParam);
-      ImageInstallIast(installParam).then((response) => {
+      ImageInstallIast(row.image_name, row.image_port).then((response) => {
         this.$message({
           title: response.data.result,
           message: response.data.result,

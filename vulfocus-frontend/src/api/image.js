@@ -97,10 +97,8 @@ export function ImageShare(id) {
 }
 
 // ImageInstallIast
-export function ImageInstallIast(param) {
+export function ImageInstallIast(imageName, ports) {
   return request({
-    url: '/iast/autoBuild',
-    method: 'GET',
-    param: param
+    url: '/iast/autoBuild?imageName=' + imageName + '&ports=' + ports,
   })
 }
