@@ -4,8 +4,6 @@
 # datetime:2021/1/6 下午4:33
 # software: PyCharm
 # project: vulfocus
-import re
-import shlex
 import time
 
 from kubernetes import client, config
@@ -107,10 +105,10 @@ class KubeCtl:
     def read_pod_status(self, name):
         try:
             status = KubeCtl.V1.read_namespaced_pod_status(namespace=self.namespace, name=name)
-            host_ip = status.status.host_ip
+            pod_ip = status.status.pod_ip
             ports = status.spec.containers[0].ports
             phase = status.status.phase
-            return phase, host_ip
+            return phase, pod_ip
         except client.exceptions.ApiException as e:
             if e.status == 404:
                 return 'Not Found', None
@@ -154,3 +152,9 @@ class KubeCtl:
             return resp
         except Exception as e:
             return None
+
+
+if __name__ == '__main__':
+    namespace = 'iast-test'
+    kube_ctl = KubeCtl(namespace=namespace)
+    kube_ctl.read_pod_status("s-springboot-1")
