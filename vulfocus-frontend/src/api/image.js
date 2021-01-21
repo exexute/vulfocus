@@ -96,9 +96,25 @@ export function ImageShare(id) {
   })
 }
 
-// ImageInstallIast
-export function ImageInstallIast(imageName, ports) {
+/**
+ * 安装IAST
+ * @param {*} baseImageName 
+ * @param {*} imageName 
+ * @param {*} ports 
+ */
+export function ImageInstallIast(baseImageName, imageName, ports) {
   return request({
-    url: '/iast/autoBuild?imageName=' + imageName + '&ports=' + ports,
+    url: '/iast/autoBuild?baseImageName=' + baseImageName + '&imageName=' + imageName + '&ports=' + ports,
+  })
+}
+
+/**
+ * 重新安装IAST
+ * @param {*} baseImageName 
+ * @param {*} ports 
+ */
+export function ReImageInstallIast(baseImageName, ports) {
+  return request({
+    url: '/iast/rebuild?baseImageName=' + baseImageName + '&ports=' + ports,
   })
 }

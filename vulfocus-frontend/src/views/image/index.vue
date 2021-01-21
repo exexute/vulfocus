@@ -329,6 +329,11 @@
     >
       <el-table-column type="index" width="50"> </el-table-column>
       <el-table-column
+        prop="base_image_name"
+        label="基础镜像"
+        :show-overflow-tooltip="true"
+      ></el-table-column>
+      <el-table-column
         prop="image_name"
         label="镜像名称"
         :show-overflow-tooltip="true"
@@ -341,7 +346,8 @@
       <el-table-column
         prop="image_port"
         label="端口"
-        width="150"
+        :show-overflow-tooltip="true"
+        width="60"
       ></el-table-column>
       <el-table-column prop="rank" label="分数" width="50"></el-table-column>
       <el-table-column
@@ -350,16 +356,27 @@
         label="描述"
       >
       </el-table-column>
-      <el-table-column fixed="right" label="操作" width="360">
+      <el-table-column fixed="right" label="操作" width="440">
         <template slot-scope="{ row }">
           <el-button
             style="display: inline-block; float: left; margin-left: 5px"
+            v-if="row.installed_iast === 0"
             size="mini"
             type="primary"
             plain
             icon="el-icon-install"
             @click="handleInstall(row)"
             >安装洞态</el-button
+          >
+          <el-button
+            style="display: inline-block; float: left; margin-left: 5px"
+            v-if="row.installed_iast === 0"
+            size="mini"
+            type="primary"
+            plain
+            icon="el-icon-install"
+            @click="reHandleInstall(row)"
+            >重新安装</el-button
           >
           <el-tag
             style="
@@ -508,6 +525,7 @@ import {
   ImageTaskTerminal,
   ImageEdit,
   ImageInstallIast,
+  ReImageInstallIast,
 } from "@/api/image";
 import { containerDel } from "@/api/container";
 import { getTask, batchTask, progressTask } from "@/api/tasks";
@@ -877,7 +895,23 @@ export default {
         .catch(() => {});
     },
     handleInstall(row) {
-      ImageInstallIast(row.image_name, row.image_port).then((response) => {
+      ImageInstallIast(
+        row.base_image_name,
+        row.image_name,
+        row.image_port
+      ).then((response) => {
+        this.$message({
+          title: response.data.result,
+          message: response.data.result,
+          type: "success",
+        });
+      });
+    },
+    reHandleInstall(row) {
+      ReImageInstallIast(
+        row.base_image_name,
+        row.image_port
+      ).then((response) => {
         this.$message({
           title: response.data.result,
           message: response.data.result,

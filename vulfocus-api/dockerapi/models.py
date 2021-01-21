@@ -1,6 +1,8 @@
 from django.db import models
 import uuid
 from user.models import UserProfile
+
+
 # Create your models here.
 
 
@@ -10,12 +12,14 @@ class ImageInfo(models.Model):
     """
     image_id = models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True)
     image_name = models.CharField(max_length=256, unique=True, verbose_name='Docker镜像名称', null=False)
+    base_image_name = models.CharField(max_length=256, unique=True, verbose_name='Docker基础镜像名称', null=False)
     image_vul_name = models.CharField(max_length=256, verbose_name='漏洞名称', null=False)
     image_port = models.CharField(null=True, default="", verbose_name='暴露端口', max_length=256)
     image_desc = models.TextField(verbose_name='镜像描述', null=True)
     rank = models.FloatField(verbose_name='Rank', null=False)
     is_ok = models.BooleanField(verbose_name="镜像是否可用", default=True)
     is_share = models.BooleanField(verbose_name="镜像是否贡献", default=False)
+    installed_iast = models.IntegerField()
     create_date = models.DateTimeField(auto_now_add=True, verbose_name='Docker创建时间，默认为当前时间')
     update_date = models.DateTimeField(auto_now=True, verbose_name='Docker更新时间，默认为当前时间')
 

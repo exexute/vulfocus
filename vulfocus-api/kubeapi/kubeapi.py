@@ -157,4 +157,6 @@ class KubeCtl:
 if __name__ == '__main__':
     namespace = 'iast-test'
     kube_ctl = KubeCtl(namespace=namespace)
-    kube_ctl.read_pod_status("s-springboot-1")
+    kube_ctl.create_pod(pod_name='s-shiro-1', image='medicean/vulapps:s_shiro_1', image_name='s-shiro-1', ports=['17811:8080'])
+    data = kube_ctl.read_pod_status("s-springboot-1")
+    print(data)
